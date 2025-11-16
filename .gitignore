@@ -8,6 +8,10 @@
 .utmp
 /Assets/Textures/slides
 
+*.txt
+*.ttf
+NotoSansJP-Regular SDF.asset
+
 _Recovery
 _Recovery.meta
 
