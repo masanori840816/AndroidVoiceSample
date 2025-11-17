@@ -18,6 +18,7 @@ class VoiceRecognitionActivity private constructor(private val context: Context)
     private val unityGameObjectName = "SpeechManager"
     private val unityMethodName = "OnRecognitionResult"
     private val unityErrorMethodName = "OnRecognitionError"
+    private var isContinuousListening = false
 
     companion object {
         private const val TAG = "UnityPlugin"
@@ -32,7 +33,6 @@ class VoiceRecognitionActivity private constructor(private val context: Context)
             }
             return instance!!
         }
-
         @JvmStatic
         fun getAndroidVersion(): String {
             return android.os.Build.VERSION.RELEASE
@@ -40,10 +40,18 @@ class VoiceRecognitionActivity private constructor(private val context: Context)
         
         @JvmStatic
         fun startListening() {
-            val plugin = getInstance() 
+            val plugin = getInstance()
+            plugin.isContinuousListening = true
             plugin.checkAndStartListening()
         }
-        
+        @JvmStatic
+        fun stopListening() {
+            val plugin = getInstance()
+            plugin.isContinuousListening = false
+            plugin.speechRecognizer?.stopListening()
+            plugin.sendUnityMessage("ListeningStopped")
+            Log.d(TAG, "Speech recognition manually stopped.")
+        }
         @JvmStatic
         fun showLog(message: String) {
             Log.d(TAG, "Message from Unity: $message")
@@ -109,7 +117,13 @@ class VoiceRecognitionActivity private constructor(private val context: Context)
             val bestResult = matches[0]
             sendUnityMessage(bestResult)
         } else {
-            sendUnityMessage("") // 認識結果なし
+            sendUnityMessage("")
+        }
+        if (isContinuousListening) {
+            Log.d(TAG, "Recognition finished. Restarting listening...")
+            Handler(Looper.getMainLooper()).postDelayed({
+                checkAndStartListening()
+            }, 100)
         }
     }
     
@@ -124,6 +138,12 @@ class VoiceRecognitionActivity private constructor(private val context: Context)
         }
         sendUnityError(errorText)
         Log.e(TAG, "Speech recognition error: $errorText")
+        if (isContinuousListening && error != SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
+             Log.d(TAG, "Error occurred. Restarting listening...")
+             Handler(Looper.getMainLooper()).postDelayed({
+                checkAndStartListening()
+             }, 100)
+        }
     }
 
     override fun onReadyForSpeech(params: Bundle?) { Log.d(TAG, "onReadyForSpeech") }
