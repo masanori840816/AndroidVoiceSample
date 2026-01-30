@@ -8,6 +8,7 @@
 .utmp
 /Assets/Textures/slides
 
+/Assets/Fonts/*
 *.txt
 *.ttf
 NotoSansJP-Regular SDF.asset
